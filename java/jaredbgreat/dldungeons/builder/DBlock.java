@@ -8,6 +8,7 @@ package jaredbgreat.dldungeons.builder;
  * https://creativecommons.org/licenses/by/4.0/legalcode
 */	
 
+import jaredbgreat.dldungeons.api.DLDEvent;
 import jaredbgreat.dldungeons.debug.Logging;
 
 import java.util.ArrayList;
@@ -17,8 +18,10 @@ import java.util.StringTokenizer;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
+import net.minecraft.tileentity.MobSpawnerBaseLogic;
 import net.minecraft.tileentity.TileEntityMobSpawner;
 import net.minecraft.world.World;
+import net.minecraftforge.common.MinecraftForge;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 public final class DBlock {
@@ -95,8 +98,9 @@ public final class DBlock {
 		// This wrapper is a protection against possible changes in block representation,
 		// e.g., abandoning the ID system, allowing any needed changes to be made here
 		// instead of elsewhere. 
-		if(!isProtectedBlock(world, x, y, z)) 
-			world.setBlock(x, y, z, block);
+		if(isProtectedBlock(world, x, y, z)) return;
+		world.setBlock(x, y, z, block);
+		if (MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.PlaceDBlock(world, x, y, z, this))) return;
 	}
 	
 	
@@ -114,8 +118,9 @@ public final class DBlock {
 		// This wrapper is a protection against possible changes in block representation,
 		// e.g., abandoning the ID system, allowing any needed changes to be made here
 		// instead of elsewhere. 
-		if(!isProtectedBlock(world, x, y, z)) 
-			world.setBlock(x, y, z, block, meta, 2);
+		if(isProtectedBlock(world, x, y, z)) return;
+		world.setBlock(x, y, z, block, meta, 2);
+		if (MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.PlaceDBlock(world, x, y, z, this))) return;
 	}
 	
 	
@@ -192,12 +197,14 @@ public final class DBlock {
 	 * @param z
 	 * @param block
 	 */
-	public static void placeBlock(World world, int x, int y, int z, Block block) {
+	public static boolean placeBlock(World world, int x, int y, int z, Block block) {
 		// This wrapper is a protection against possible changes in block representation,
 		// e.g., abandoning the ID system, allowing any needed changes to be made here
 		// instead of elsewhere. 
-		if(!isProtectedBlock(world, x, y, z)) 
-				world.setBlock(x, y, z, block);
+		if(isProtectedBlock(world, x, y, z)) return false;
+		world.setBlock(x, y, z, block);
+		if (MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.PlaceBlock(world, x, y, z, block))) return false;
+		return true;
 	}
 	
 	
@@ -280,11 +287,11 @@ public final class DBlock {
 	 * @param mob
 	 */
 	public static void placeSpawner(World world, int x, int y, int z, String mob) {
+		if (MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.BeforePlaceSpawner(world, x, y, z, mob))) return;
 		if(isProtectedBlock(world, x, y, z)) return;
 		placeBlock(world, x, y, z, spawner);
 		TileEntityMobSpawner theSpawner = (TileEntityMobSpawner)world.getTileEntity(x, y, z);
 		theSpawner.func_145881_a().setEntityName(mob);
-		//world.setBlockMetadataWithNotify(x, y, z, 15, 7);
 	}
 	
 	

@@ -348,6 +348,11 @@ public final class ConfigHandler {
 			exporter = new Externalizer(configDir.toString() + File.separator);
 			exporter.makeChestCfg();
 		}
+		File nbtconf = new File(configDir.toString() + File.separator + "nbt.cfg");
+		if(!nbtconf.exists()) {
+			exporter = new Externalizer(configDir.toString() + File.separator);
+			exporter.makeNBTCfg();
+		}
 	}
 	
 	

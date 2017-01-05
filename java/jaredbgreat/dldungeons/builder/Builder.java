@@ -5,6 +5,8 @@ package jaredbgreat.dldungeons.builder;
  * This mod is the creation and copyright (c) 2015 
  * of Jared Blackburn (JaredBGreat).
  * 
+ * Forge event code by Charles Howard, 2016.
+ * 
  * It is licensed under the creative commons 4.0 attribution license: * 
  * https://creativecommons.org/licenses/by/4.0/legalcode
 */	
@@ -14,13 +16,12 @@ import static jaredbgreat.dldungeons.builder.DBlock.lapis;
 import static jaredbgreat.dldungeons.builder.DBlock.placeBlock;
 import static jaredbgreat.dldungeons.builder.DBlock.quartz;
 import jaredbgreat.dldungeons.DoomlikeDungeons;
+import jaredbgreat.dldungeons.api.DLDEvent;
 import jaredbgreat.dldungeons.planner.Dungeon;
-
 import java.util.Random;
-
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
-import cpw.mods.fml.common.IWorldGenerator;
+import net.minecraftforge.common.MinecraftForge;
 
 
 public class Builder {
@@ -43,12 +44,14 @@ public class Builder {
 	 */
 	public static void placeDungeon(Random random, int chunkX, int chunkZ, World world) throws Throwable {	
 		if(world.isRemote) return; // Do not perform world-gen on the client!
+		if (MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.PlaceDungeonBegin(random, chunkX, chunkZ, world))) return;
 		DoomlikeDungeons.profiler.startTask("Create Dungeons");
 		Dungeon dungeon = new Dungeon(random, world.getBiomeGenForCoords((chunkX * 16), (chunkZ * 16)), 
 									  world, chunkX, chunkZ);
 		buildDungeon(dungeon);
 		dungeon.preFinalize();
 		dungeon = null;
+		MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.PlaceDungeonFinish(random, chunkX, chunkZ, world, dungeon));
 		DoomlikeDungeons.profiler.endTask("Create Dungeons");
 	}
 	
@@ -68,6 +71,7 @@ public class Builder {
 	public static void placeDungeon(Random random, int chunkX, int chunkZ, World world,
 					IChunkProvider chunkGenerator, IChunkProvider chunkProvider) throws Throwable {	
 		if(world.isRemote) return; // Do not perform world-gen on the client!
+		if (MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.PlaceDungeonBegin(random, chunkX, chunkZ, world))) return;
 		DoomlikeDungeons.profiler.startTask("Create Dungeons");
 		Dungeon dungeon = new Dungeon(random, world.getBiomeGenForCoords((chunkX * 16), (chunkZ * 16)), 
 									  world, chunkX, chunkZ);
@@ -77,6 +81,7 @@ public class Builder {
 		}
 		dungeon.preFinalize();
 		dungeon = null;
+		MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.PlaceDungeonFinish(random, chunkX, chunkZ, world, dungeon));
 		DoomlikeDungeons.profiler.endTask("Create Dungeons");
 	}
 	

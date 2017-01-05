@@ -10,8 +10,9 @@ package jaredbgreat.dldungeons.themes;
 */	
 
 
-import jaredbgreat.dldungeons.DoomlikeDungeons;
 import jaredbgreat.dldungeons.builder.DBlock;
+import jaredbgreat.dldungeons.nbt.NBTHelper;
+import jaredbgreat.dldungeons.parser.Tokenizer;
 import jaredbgreat.dldungeons.pieces.chests.LootItem;
 import jaredbgreat.dldungeons.pieces.chests.LootList;
 import jaredbgreat.dldungeons.pieces.chests.TreasureChest;
@@ -25,7 +26,6 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.NoSuchElementException;
-import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -142,6 +142,7 @@ public class ThemeReader {
 	 * readTheme and openLoot are called to open the files.
 	 */
 	public static void readThemes() {
+		openNBTConfig();
 		int num = findFiles();
 		System.out.println("[DLDUNGEONS] Found " + num + " themes.");
 		for(File file : files) readTheme(file);
@@ -151,7 +152,46 @@ public class ThemeReader {
 	
 	
 	/**
-	 * Attempts to open chest.cfg, and if succesful will call readLoot 
+	 * Attempts to open chest.cfg, and if successful will call readLoot 
+	 * to read it.
+	 */
+	public static void openNBTConfig() {
+		BufferedReader instream = null;
+		File nbtconfig = new File(configDir.toString() + File.separator + "nbt.cfg");
+		if(nbtconfig.exists()) try {
+			instream = new BufferedReader(new 
+					FileReader(nbtconfig.toString()));
+			readNBT(instream);
+			if(instream != null) instream.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} else {
+			System.out.println("[DLDUNGEONS] File nbt.cfg is missing; will fallabck on default loot");
+		}
+	}
+	
+	
+	/**
+	 * This will read the nbt.cfg file and populate BNT registry from
+	 * its data.
+	 * 
+	 * @param instream
+	 * @throws IOException
+	 */
+	public static void readNBT(BufferedReader instream) throws IOException {
+		System.out.println("[DLDUNGEONS] Loading custom NBT tags (nbt.cfg)");		
+		Tokenizer tokens = null;
+		String line = null;		
+		while((line = instream.readLine()) != null) {
+			if(line.length() < 2) continue;
+			if(line.charAt(0) == '#') continue;
+			NBTHelper.parseNBTLine(line);
+		}
+	}	
+	
+	
+	/**
+	 * Attempts to open chest.cfg, and if successful will call readLoot 
 	 * to read it.
 	 */
 	public static void openLoot() {
@@ -181,7 +221,7 @@ public class ThemeReader {
 	public static void readLoot(BufferedReader instream) throws IOException {
 		System.out.println("[DLDUNGEONS] Loading chest loot file (chests.cfg)");
 		
-		StringTokenizer tokens = null;
+		Tokenizer tokens = null;
 		String line = null;
 		String token;
 		int itemid;
@@ -199,7 +239,7 @@ public class ThemeReader {
 		while((line = instream.readLine()) != null) {
 			if(line.length() < 2) continue;
 			if(line.charAt(0) == '#') continue;
-			tokens = new StringTokenizer(line, " ,;:\t\n\r\f=");
+			tokens = new Tokenizer(line, " ,;:\t\n\r\f=");
 			if(!tokens.hasMoreTokens()) continue;
 			type = tokens.nextToken().toLowerCase();
 			if(!tokens.hasMoreTokens()) continue;
@@ -218,7 +258,13 @@ public class ThemeReader {
 			max = intParser(tokens);
 			item = modid + ":" + name;
 			loot = new LootItem(item, min, max);
-			if(item != null && loot != null) LootList.addItem(loot, type, level);
+			if(item != null && loot != null) {
+				while(tokens.hasMoreTokens()) {
+					loot.addNbt(tokens.nextToken());
+				}
+				loot.trimNbt();
+				LootList.addItem(loot, type, level);
+			}
 		}
 		LootList.addDiscs();
 	}			
@@ -300,14 +346,14 @@ public class ThemeReader {
 		Theme theme = new Theme();
 		theme.name = name;
 		theme.version = 1.0f; // Assume old version until a newer version number is detected
-		StringTokenizer tokens = null;
+		Tokenizer tokens = null;
 		String line = null;
 		String token;
 		String delimeters = " ,:;\t\n\r\f="; // Assume old version until a newer version number is detected
 		while((line = instream.readLine()) != null) {
 			if(line.length() < 2) continue;
 			if(line.charAt(0) == '#') continue;
-			tokens = new StringTokenizer(line, delimeters);
+			tokens = new Tokenizer(line, delimeters);
 			if(!tokens.hasMoreTokens()) continue;
 			token = tokens.nextToken().toLowerCase();
 			if(token.equals("miny")) {
@@ -438,7 +484,7 @@ public class ThemeReader {
 	 * @param tokens
 	 * @return 
 	 */
-	private static Element elementParser(Element el, StringTokenizer tokens) {
+	private static Element elementParser(Element el, Tokenizer tokens) {
 		boolean valid = false;
 		int[] values = new int[]{0, 0, 0, 0, 0, 0};
 		String num;
@@ -460,7 +506,7 @@ public class ThemeReader {
 	 * @param tokens
 	 * @return
 	 */
-	private static SizeElement sizeParser(SizeElement el, StringTokenizer tokens) {
+	private static SizeElement sizeParser(SizeElement el, Tokenizer tokens) {
 		boolean valid = false;
 		int[] values = new int[]{0, 0, 0, 0, 0};
 		String num;
@@ -484,7 +530,7 @@ public class ThemeReader {
 	 * @param tokens
 	 * @return
 	 */
-	private static int intParser(int el, StringTokenizer tokens) {
+	private static int intParser(int el, Tokenizer tokens) {
 		boolean valid = false;
 		int value = 0;
 		String num = ESTRING;
@@ -495,7 +541,7 @@ public class ThemeReader {
 				if((value > 5) && (value < 224)) valid = true;
 			}
 		} catch(Exception e) {
-			System.err.println("[DLDUNGEONS] ThemeReader.intParser(int el, StringTokenizer tokens) tried to read non-number as integer");
+			System.err.println("[DLDUNGEONS] ThemeReader.intParser(int el, Tokenizer tokens) tried to read non-number as integer");
 			System.err.println("[DLDUNGEONS] Value passed as and integer was: " + num);
 			e.printStackTrace();
 			return el;
@@ -512,7 +558,7 @@ public class ThemeReader {
 	 * @param tokens
 	 * @return
 	 */
-	private static float floatParser(float el, StringTokenizer tokens) {
+	private static float floatParser(float el, Tokenizer tokens) {
 		float value = 0f;
 		String num = ESTRING;
 		try {
@@ -521,7 +567,7 @@ public class ThemeReader {
 				value = Float.parseFloat(num);
 			}
 		} catch(Exception e) {
-			System.err.println("[DLDUNGEONS] ThemeReader.floatParser(float el, StringTokenizer tokens) tried to read non-number as float");
+			System.err.println("[DLDUNGEONS] ThemeReader.floatParser(float el, Tokenizer tokens) tried to read non-number as float");
 			System.err.println("[DLDUNGEONS] Value passed as and foat was: " + num);
 			return el;
 		}
@@ -538,16 +584,16 @@ public class ThemeReader {
 	 * @param tokens
 	 * @return
 	 */
-	private static int intParser(StringTokenizer tokens) {
+	private static int intParser(Tokenizer tokens) {
 		int value = 0;
 		String num = ESTRING;
 		try {
 			if(tokens.hasMoreTokens()) {
-				num = tokens.nextToken();
+				num = tokens.nextToken().trim();
 				value = Integer.parseInt(num);
 			}
 		} catch(Exception e) {
-			System.err.println("[DLDUNGEONS] ThemeReader.intParser(StringTokenizer tokens) tried to read non-number as integer");
+			System.err.println("[DLDUNGEONS] ThemeReader.intParser(Tokenizer tokens) tried to read non-number as integer");
 			System.err.println("[DLDUNGEONS] Value passed as and integer was: " + num);
 			return -1;
 		}
@@ -563,7 +609,7 @@ public class ThemeReader {
 	 * @param tokens
 	 * @return
 	 */
-	private static boolean booleanParser(boolean el, StringTokenizer tokens) {
+	private static boolean booleanParser(boolean el, Tokenizer tokens) {
 		boolean valid = false;
 		boolean bool;
 		if(tokens.hasMoreTokens()) {
@@ -588,7 +634,7 @@ public class ThemeReader {
 	 * @throws NoSuchElementException
 	 */
 	private static int[] blockParser(int[] el, 
-			StringTokenizer tokens, float version) throws NoSuchElementException {
+			Tokenizer tokens, float version) throws NoSuchElementException {
 		ArrayList<String> values = new ArrayList<String>();
 		String nums;
 		while(tokens.hasMoreTokens()) {
@@ -618,7 +664,7 @@ public class ThemeReader {
 	 * @param tokens
 	 * @return
 	 */
-	private static ArrayList<String> parseMobs(ArrayList<String> el, StringTokenizer tokens) {
+	private static ArrayList<String> parseMobs(ArrayList<String> el, Tokenizer tokens) {
 		ArrayList<String> mobs;
 		if(el != null) {
 			mobs = el;
@@ -639,7 +685,7 @@ public class ThemeReader {
 	 * @param tokens
 	 * @return
 	 */
-	private static EnumSet<Type> biomeParser(StringTokenizer tokens) {
+	private static EnumSet<Type> biomeParser(Tokenizer tokens) {
 		String name;
 		EnumSet<Type> biomes = EnumSet.noneOf(Type.class);
 		while(tokens.hasMoreTokens()) {		
@@ -684,7 +730,7 @@ public class ThemeReader {
 	 * @param tokens
 	 * @return
 	 */
-	private static EnumSet<ThemeType> typeParser(StringTokenizer tokens) {
+	private static EnumSet<ThemeType> typeParser(Tokenizer tokens) {
 		String name;
 		EnumSet<ThemeType> types = EnumSet.noneOf(ThemeType.class);
 		while(tokens.hasMoreTokens()) {
@@ -720,7 +766,7 @@ public class ThemeReader {
 	 * @param tokens
 	 * @return
 	 */
-	private static EnumSet<ThemeFlags> flagParser(StringTokenizer tokens) {
+	private static EnumSet<ThemeFlags> flagParser(Tokenizer tokens) {
 		String name;
 		EnumSet<ThemeFlags> flags = EnumSet.noneOf(ThemeFlags.class);
 		while(tokens.hasMoreTokens()) {

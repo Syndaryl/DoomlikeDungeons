@@ -5,12 +5,15 @@ package jaredbgreat.dldungeons.pieces.chests;
  * This mod is the creation and copyright (c) 2015 
  * of Jared Blackburn (JaredBGreat).
  * 
+ * Forge event code by Charles Howard, 2016.
+ * 
  * It is licensed under the creative commons 4.0 attribution license: * 
  * https://creativecommons.org/licenses/by/4.0/legalcode
 */	
 
 
 import jaredbgreat.dldungeons.ConfigHandler;
+import jaredbgreat.dldungeons.api.DLDEvent;
 import jaredbgreat.dldungeons.builder.DBlock;
 
 import java.util.Random;
@@ -20,6 +23,7 @@ import net.minecraft.tileentity.TileEntityChest;
 import net.minecraft.util.WeightedRandomChestContent;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ChestGenHooks;
+import net.minecraftforge.common.MinecraftForge;
 
 /**
  * Represents a typical loot chest, including its coordinates and loot level.
@@ -74,6 +78,10 @@ public class BasicChest {
 			fillChest(contents, LootType.RANDOM, random);
 			break;
 		}
+		
+		
+		MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.AfterChestTileEntity(world, contents, which, x, y, z, random, level));
+		
 	}
 	
 	

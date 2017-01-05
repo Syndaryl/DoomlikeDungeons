@@ -5,12 +5,15 @@ package jaredbgreat.dldungeons.planner.mapping;
  * This mod is the creation and copyright (c) 2015 
  * of Jared Blackburn (JaredBGreat).
  * 
+ * Forge event code by Charles Howard, 2016.
+ * 
  * It is licensed under the creative commons 4.0 attribution license: * 
  * https://creativecommons.org/licenses/by/4.0/legalcode
 */	
 
 
 import jaredbgreat.dldungeons.DoomlikeDungeons;
+import jaredbgreat.dldungeons.api.DLDEvent;
 import jaredbgreat.dldungeons.builder.DBlock;
 import jaredbgreat.dldungeons.planner.Dungeon;
 import jaredbgreat.dldungeons.planner.astar.Step;
@@ -18,6 +21,7 @@ import jaredbgreat.dldungeons.rooms.Room;
 import jaredbgreat.dldungeons.themes.ThemeFlags;
 import net.minecraft.block.Block;
 import net.minecraft.world.World;
+import net.minecraftforge.common.MinecraftForge;
 
 /**
  * A two dimensional map of the dungeon, including heights, blocks, and 
@@ -102,6 +106,8 @@ public class MapMatrix {
 		int shiftZ = (chunkZ * 16) - (room.length / 2) + 8;
 		int below;
 		boolean flooded = dungeon.theme.flags.contains(ThemeFlags.WATER);
+		MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.BeforeBuild(this, shiftX, shiftZ, flooded));
+		
 		for(int i = 0; i < room.length; i++)
 			for(int j = 0; j < room.length; j++) {
 				if(room[i][j] != 0) {
@@ -169,6 +175,8 @@ public class MapMatrix {
 						 DBlock.place(world, shiftX + i, floorY[i][j], shiftZ + j, theRoom.liquidBlock);
 				}
 			}	
+		
+		MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.AfterBuild(this, shiftX, shiftZ, flooded));
 		DoomlikeDungeons.profiler.endTask("Building Dungeon architecture");
 		//dungeon.addSpawners();	
 		dungeon.addEntrances();

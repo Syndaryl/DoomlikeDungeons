@@ -11,7 +11,12 @@ package jaredbgreat.dldungeons.pieces.chests;
 
 
 import jaredbgreat.dldungeons.debug.Logging;
+import jaredbgreat.dldungeons.nbt.NBTHelper;
+import jaredbgreat.dldungeons.nbt.tags.ITag;
+import jaredbgreat.dldungeons.parser.Tokenizer;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.StringTokenizer;
 
@@ -35,6 +40,7 @@ public class LootItem {
 	
 	Item item;
 	int min, max, meta;
+	ArrayList<ITag> nbtData;
 	
 	
 	/**
@@ -70,7 +76,7 @@ public class LootItem {
 	
 	
 	/**
-	 * Create a LootItem usign a block
+	 * Create a LootItem using a block
 	 * 
 	 * @param item
 	 * @param min
@@ -91,15 +97,40 @@ public class LootItem {
 	 * @param in
 	 */
 	private void metaParse(String in) {
-		StringTokenizer nums = new StringTokenizer(in, "({[:]})");
-		String modid = nums.nextToken();
-		String name  = nums.nextToken();
+		Tokenizer tokens = new Tokenizer(in, "({[:]})");
+		String modid = tokens.nextToken();
+		String name  = tokens.nextToken();
 		item = GameRegistry.findItem(modid, name);
 		if(item == null) {
 			Logging.LogError("[DLDUNGEONS] ERROR! Item read as \"" + in 
 					+ "\" was was not in registry (returned null).");
 		}
-		if(nums.hasMoreElements()) meta = Integer.parseInt(nums.nextToken());
+		if(tokens.hasMoreTokens()) meta = Integer.parseInt(tokens.nextToken());
+	}
+	
+	
+	/**
+	 * This will parse an NBT tag from the chest.cfg and add it to the LootItem 
+	 * as an NbtTag object for later use in adding the tag to actual item stacks
+	 * in chests.
+	 * 
+	 * @param in
+	 */
+	public void addNbt(String in) {
+		if(nbtData == null) {
+			nbtData = new ArrayList<ITag>();
+		}
+		nbtData.add(NBTHelper.getTagFromLabel(in));
+	}
+	
+	
+	/**
+	 * Make the items NBT data a small as possible.
+	 */
+	public void trimNbt() {
+		if(nbtData != null) {
+			nbtData.trimToSize();
+		}
 	}
 	
 	
@@ -135,6 +166,11 @@ public class LootItem {
 			out.setItemDamage(meta);
 		} else {
 			out.setItemDamage(0);
+		}
+		if(nbtData != null && !nbtData.isEmpty()) {
+			for(ITag tag: nbtData) {
+				NBTHelper.setNbtTag(out, tag);
+			}
 		}
 		return out;
 	}

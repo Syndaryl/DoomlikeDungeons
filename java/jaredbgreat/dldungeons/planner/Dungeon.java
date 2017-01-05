@@ -5,13 +5,15 @@ package jaredbgreat.dldungeons.planner;
  * This mod is the creation and copyright (c) 2015 
  * of Jared Blackburn (JaredBGreat).
  * 
+ * Forge event code by Charles Howard, 2016.
+ * 
  * It is licensed under the creative commons 4.0 attribution license: * 
  * https://creativecommons.org/licenses/by/4.0/legalcode
 */	
 
-
 import jaredbgreat.dldungeons.ConfigHandler;
 import jaredbgreat.dldungeons.DoomlikeDungeons;
+import jaredbgreat.dldungeons.api.DLDEvent;
 import jaredbgreat.dldungeons.builder.DBlock;
 import jaredbgreat.dldungeons.pieces.Spawner;
 import jaredbgreat.dldungeons.pieces.chests.BasicChest;
@@ -27,13 +29,12 @@ import jaredbgreat.dldungeons.themes.BiomeSets;
 import jaredbgreat.dldungeons.themes.Degree;
 import jaredbgreat.dldungeons.themes.Sizes;
 import jaredbgreat.dldungeons.themes.Theme;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
-
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
+import net.minecraftforge.common.MinecraftForge;
 
 
 /**
@@ -377,6 +378,7 @@ public class Dungeon {
 	 * @param room
 	 */
 	public void addChestBlocks(Room room) {
+		if(MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.AddChestBlocksToRoom(this, room))) return;
 		for(BasicChest  chest : room.chests) {
 			DBlock.placeChest(map.world, shiftX + chest.mx, chest.my, shiftZ + chest.mz);
 		}		
@@ -400,6 +402,7 @@ public class Dungeon {
 	 * @param room
 	 */
 	private void addTileEntitesToRoom(Room room) {
+		if(MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.AddTileEntitiesToRoom(this, room))) return;
 			for(Spawner  spawner : room.spawners) {
 					DBlock.placeSpawner(map.world, 
 										shiftX + spawner.getX(), 
@@ -440,7 +443,8 @@ public class Dungeon {
 		if(variability.use(random)) entrance = random.nextInt(3);
 		else entrance = entrancePref; 
 		if(ConfigHandler.easyFind) entrance = 1;
-				
+		if(MinecraftForge.TERRAIN_GEN_BUS.post(new DLDEvent.AddEntrance(this, room))) return;
+		
 		switch (entrance) {
 		case 0:
 			//DoomlikeDungeons.profiler.startTask("Adding Sriral Stair");
